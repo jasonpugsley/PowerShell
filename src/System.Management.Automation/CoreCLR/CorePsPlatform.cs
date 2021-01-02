@@ -52,6 +52,17 @@ namespace System.Management.Automation
         }
 
         /// <summary>
+        /// True if the current platform is FreeBSD.
+        /// </summary>
+        public static bool IsFreeBSD
+        {
+            get
+            {
+                return RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD);
+            }
+        }
+
+        /// <summary>
         /// True if PowerShell was built targeting .NET Core.
         /// </summary>
         public static bool IsCoreCLR

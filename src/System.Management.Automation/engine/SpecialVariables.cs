@@ -212,6 +212,10 @@ namespace System.Management.Automation
 
         internal static readonly VariablePath IsWindowsPath = new VariablePath("IsWindows");
 
+        internal const string IsFreeBSD = "IsFreeBSD";
+
+        internal static VariablePath IsFreeBSDPath = new VariablePath("IsFreeBSD");
+
         internal const string IsCoreCLR = "IsCoreCLR";
 
         internal static readonly VariablePath IsCoreCLRPath = new VariablePath("IsCoreCLR");

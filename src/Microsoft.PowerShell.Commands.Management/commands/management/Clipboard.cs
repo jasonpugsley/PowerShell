@@ -73,7 +73,7 @@ namespace Microsoft.PowerShell.Commands.Internal
                 ExecuteOnStaThread(() => GetTextImpl(out clipboardText));
                 return clipboardText;
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
             {
                 tool = "xclip";
                 args = "-selection clipboard -out";
@@ -111,7 +111,7 @@ namespace Microsoft.PowerShell.Commands.Internal
                 ExecuteOnStaThread(() => SetClipboardData(Tuple.Create(text, CF_UNICODETEXT)));
                 return;
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
             {
                 tool = "xclip";
                 args = "-selection clipboard -in";

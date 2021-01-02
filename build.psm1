@@ -113,10 +113,12 @@ function Get-EnvironmentInformation
         $environment += @{'IsCoreCLR' = [System.Management.Automation.Platform]::IsCoreCLR}
         $environment += @{'IsLinux' = [System.Management.Automation.Platform]::IsLinux}
         $environment += @{'IsMacOS' = [System.Management.Automation.Platform]::IsMacOS}
+        $environment += @{'IsFreeBSD' = [System.Management.Automation.Platform]::IsFreeBSD}
     } else {
         $environment += @{'IsCoreCLR' = $false}
         $environment += @{'IsLinux' = $false}
         $environment += @{'IsMacOS' = $false}
+        $environment += @{'IsFreeBSD' = $false}
     }
 
     if ($environment.IsWindows)
@@ -290,6 +292,7 @@ function Start-PSBuild {
                      "linux-arm64",
                      "linux-x64",
                      "osx-x64",
+                     "freebsd-x64",
                      "win-arm",
                      "win-arm64",
                      "win7-x64",
@@ -465,6 +468,8 @@ Fix steps:
 
         if ($Options.Runtime -notlike 'fxdependent*') {
             if ($Options.Runtime -like 'win-arm*') {
+                $Arguments += "/property:SDKToUse=Microsoft.NET.Sdk"
+            } elseif ($Options.Runtime -like 'freebsd-x64*') {
                 $Arguments += "/property:SDKToUse=Microsoft.NET.Sdk"
             } else {
                 $Arguments += "/property:SDKToUse=Microsoft.NET.Sdk.WindowsDesktop"
@@ -755,6 +760,7 @@ function New-PSOptions {
                      "linux-arm64",
                      "linux-x64",
                      "osx-x64",
+                     "freebsd-x64",
                      "win-arm",
                      "win-arm64",
                      "win7-x64",
@@ -789,6 +795,8 @@ function New-PSOptions {
             $Runtime = "linux-x64"
         } elseif ($environment.IsMacOS) {
             $Runtime = "osx-x64"
+        } elseif ($environment.IsFreeBSD) {
+            $Runtime = "freebsd-x64"
         } else {
             $RID = dotnet --info | ForEach-Object {
                 if ($_ -match "RID") {
@@ -820,7 +828,7 @@ function New-PSOptions {
 
     $Executable = if ($Runtime -like 'fxdependent*') {
         "pwsh.dll"
-    } elseif ($environment.IsLinux -or $environment.IsMacOS) {
+    } elseif ($environment.IsLinux -or $environment.IsMacOS -or $environment.IsFreeBSD) {
         "pwsh"
     } elseif ($environment.IsWindows) {
         "pwsh.exe"
@@ -2253,6 +2261,7 @@ function Start-CrossGen {
                      "linux-arm64",
                      "linux-x64",
                      "osx-x64",
+                     "freebsd-x64",
                      "win-arm",
                      "win-arm64",
                      "win7-x64",
@@ -2395,6 +2404,8 @@ function Start-CrossGen {
         "libclrjit.so"
     } elseif ($environment.IsMacOS) {
         "libclrjit.dylib"
+    } elseif ($environment.IsFreeBSD) {
+        "libclrjit.so"
     }
 
     # Make sure that all dependencies required by crossgen are at the directory.

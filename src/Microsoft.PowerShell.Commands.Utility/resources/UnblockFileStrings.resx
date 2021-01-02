@@ -120,6 +120,9 @@
   <data name="LinuxNotSupported" xml:space="preserve">
     <value>The cmdlet does not support Linux.</value>
   </data>
+  <data name="FreeBSDNotSupported" xml:space="preserve">
+    <value>The cmdlet does not support FreeBSD.</value>
+  </data>
   <data name="UnblockError" xml:space="preserve">
     <value>There was an error unblocking {0}.</value>
   </data>

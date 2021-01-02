@@ -7,6 +7,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Microsoft.PowerShell
 {
@@ -55,6 +56,12 @@ namespace Microsoft.PowerShell
         private const int MACOS_KERN_ARGMAX = 8;
         private const int MACOS_KERN_PROCARGS2 = 49;
         private const int MACOS_PROC_PIDPATHINFO_MAXSIZE = 4096;
+
+        // FreeBSD p/Invoke constants
+        private const int FREEBSD_CTL_KERN = 1;
+        private const int FREEBSD_KERN_PROC = 14;
+        private const int FREEBSD_KERN_PROC_ARGS = 7;
+        private const int FREEBSD_KERN_PROC_PATHNAME = 12;
 #endif
 
         /// <summary>
@@ -121,6 +128,87 @@ namespace Microsoft.PowerShell
                 if (pwshPath == null)
                 {
                     throw new ArgumentNullException(nameof(pwshPath));
+                }
+
+                // exec pwsh
+                ThrowOnFailure("exec", ExecPwshLogin(args, pwshPath, isMacOS: false));
+                return;
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
+            {
+
+                Span<int> _mib = stackalloc int[4];
+                int mibLen = 4;
+                _mib[0] = FREEBSD_CTL_KERN;
+                _mib[1] = FREEBSD_KERN_PROC;
+                _mib[2] = FREEBSD_KERN_PROC_ARGS;
+                int len = 0;
+
+                // Get the PID so we can query this process' args
+                int _pid = GetPid();
+                _mib[3] = _pid;
+
+                // Get the process args len
+                unsafe
+                {
+                    fixed (int *mibptr = _mib)
+                    {
+                        ThrowOnFailure(nameof(len), SysCtl(mibptr, mibLen, (void*)0, &len, IntPtr.Zero, 0));
+                    }
+                }
+
+                IntPtr _procargs = Marshal.AllocHGlobal(len);
+                try
+                {
+                    unsafe
+                    {
+                        fixed (int *mibptr = _mib)
+                        {
+                            ThrowOnFailure(nameof(_procargs), SysCtl(mibptr, mibLen, _procargs.ToPointer(), &len, IntPtr.Zero, 0));
+                        }
+
+                        // First char in arguments
+                        procNameFirstByte = *(byte *)_procargs;
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(_procargs);
+                }
+
+                if (!IsLogin(procNameFirstByte, args))
+                {
+                    return;
+                }
+
+                _mib[2] = FREEBSD_KERN_PROC_PATHNAME;
+                len = 0;
+                // Get the process args len
+                unsafe
+                {
+                    fixed (int *mibptr = _mib)
+                    {
+                        ThrowOnFailure(nameof(len), SysCtl(mibptr, mibLen, (void*)0, &len, IntPtr.Zero, 0));
+                    }
+                }
+
+                _procargs = Marshal.AllocHGlobal(len);
+                try
+                {
+                    unsafe
+                    {
+                        fixed (int *mibptr = _mib)
+                        {
+                            ThrowOnFailure(nameof(_procargs), SysCtl(mibptr, mibLen, _procargs.ToPointer(), &len, IntPtr.Zero, 0));
+                        }
+
+                        pwshPath = new string((sbyte*)_procargs);
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(_procargs);
                 }
 
                 // exec pwsh
@@ -337,6 +425,11 @@ namespace Microsoft.PowerShell
             if (isMacOS)
             {
                 return Exec("/bin/zsh", execArgs);
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
+            {
+                return Exec("/bin/bash", execArgs);
             }
 
             return Exec("/bin/sh", execArgs);
